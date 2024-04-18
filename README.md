@@ -1,15 +1,14 @@
-## Point One Polaris Client
-This application uses the [polaris](https://github.com/PointOneNav/polaris) library to interface with Point One's GNSS corrections service.
-
-The **config.toml** file is used to configure the program settings. <br>
-https://github.com/ARK-Electronics/polaris-rtk-client/blob/d24f21f2907bd1246c60027bf1c2f1a8338ab5f9/config.toml#L1-L2
+## Point One Polaris Client for MAVLink
+This application uses the [polaris](https://github.com/PointOneNav/polaris) library to interface with Point One's GNSS corrections service and send RTCM corrections via MAVLink.
 
 You must first create a PointOne account and copy your API key to the config file. <br>
 https://app.pointonenav.com/
 
+The **config.toml** file is used to configure the program settings. <br>
+https://github.com/ARK-Electronics/polaris-rtk-client/blob/d24f21f2907bd1246c60027bf1c2f1a8338ab5f9/config.toml#L1-L2
+
 ### Behavior
-The application waits for a MAVSDK connection. Once connected the Polaris client is created and the connection with the Polaris server
-is started. The application publishes the GPS ECEF from the received GPS_RAW_INT to the Polaris server in order to begin receiving corrections. The corrections are binary RTCM3 and are handled in a callback function which then publishes mavlink GPS_RTCM_DATA messages.
+The application waits for a MAVSDK connection. Once connected the Polaris client is created and runs asynchronously. The received GPS_RAW_INT mavlink messages from the flight controller are converted to ECEF and sent to the Polaris server in order to begin receiving corrections. The corrections are binary RTCM3 and are published as GPS_RTCM_DATA MAVLink messages.
 
 ### Build
 Pre-requisites
