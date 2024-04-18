@@ -21,7 +21,6 @@ static std::string get_user_name()
 	return {};
 }
 
-std::atomic<bool> _should_exit = false;
 std::shared_ptr<PolarisClientMavlink> _polaris_client_mavlink;
 
 int main(int argc, char* argv[])
@@ -55,15 +54,7 @@ int main(int argc, char* argv[])
 
 	_polaris_client_mavlink = std::make_shared<PolarisClientMavlink>(settings);
 
-	bool connected = false;
-
-	while (!_should_exit && !connected) {
-		connected = _polaris_client_mavlink->wait_for_mavsdk_connection(3);
-	}
-
-	if (!_should_exit && connected) {
-		_polaris_client_mavlink->run();
-	}
+	_polaris_client_mavlink->run();
 
 	std::cout << "exiting" << std::endl;
 
@@ -73,6 +64,4 @@ int main(int argc, char* argv[])
 static void signal_handler(int signum)
 {
 	if (_polaris_client_mavlink.get()) _polaris_client_mavlink->stop();
-
-	_should_exit = true;
 }
