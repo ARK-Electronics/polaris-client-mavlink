@@ -69,7 +69,7 @@ void PolarisRTKClient::RTCMCallback(const uint8_t* recv, size_t length)
 		while (start < length) {
 			int current_length = std::min(int(length) - start, MAVLINK_MSG_GPS_RTCM_DATA_FIELD_DATA_LEN);
 			msg.flags = 1; // LSB set indicates message is fragmented
-			msg.flags |= (fragment_id++ & 0x6) << 1; // Next 2 bits are fragment id
+			msg.flags |= (fragment_id++ & 0x3) << 1; // Next 2 bits are fragment id
 			msg.flags |= (_sequence_id & 0x1F) << 3; // Next 5 bits are sequence id
 			msg.len = current_length;
 			memcpy(&msg.data, recv + start, current_length);
