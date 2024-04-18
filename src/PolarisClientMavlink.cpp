@@ -4,15 +4,16 @@
 #include <future>
 #include <regex>
 #include <algorithm>
+#include <mavsdk/log_callback.h>
 
 PolarisClientMavlink::PolarisClientMavlink(const PolarisClientMavlink::Settings& settings)
 	: _settings(settings)
 {
 	// Disable mavsdk noise
-	// mavsdk::log::subscribe([](...) {
-	//  // https://mavsdk.mavlink.io/main/en/cpp/guide/logging.html
-	//  return true;
-	// });
+	mavsdk::log::subscribe([](...) {
+		// https://mavsdk.mavlink.io/main/en/cpp/guide/logging.html
+		return true;
+	});
 }
 
 void PolarisClientMavlink::stop()
@@ -50,7 +51,7 @@ bool PolarisClientMavlink::wait_for_mavsdk_connection(double timeout_ms)
 
 void PolarisClientMavlink::RTCMCallback(const uint8_t* recv, size_t length)
 {
-	std::cout << "Received data: size: " << length << std::endl;
+	std::cout << "\nReceived: " << length << std::endl;
 
 	mavlink_gps_rtcm_data_t msg = {};
 
