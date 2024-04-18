@@ -48,7 +48,6 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	// Setup the LogLoader
 	PolarisClientMavlink::Settings settings = {
 		.mavsdk_connection_url = config["connection_url"].value_or("0.0.0"),
 		.polaris_api_key = config["polaris_api_key"].value_or("<your_key_goes_here>")

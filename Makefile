@@ -7,7 +7,6 @@ install:
 	@cmake -Bbuild -H.
 	cmake --build build -j$(nproc)
 	@sudo cmake --install build
-	@mkdir -p ${HOME}/polaris-client-mavlink/logs
 	@if [ -f install.config.toml ]; then \
 		cp install.config.toml ${HOME}/polaris-client-mavlink/config.toml; \
 	else \
