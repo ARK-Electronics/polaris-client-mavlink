@@ -112,6 +112,10 @@ void PolarisClientMavlink::handle_gps_raw_int(const mavlink_message_t& message)
 	mavlink_gps_raw_int_t msg;
 	mavlink_msg_gps_raw_int_decode(&message, &msg);
 
+	if (msg.lat == 0 && msg.lon == 0) {
+		return;
+	}
+
 	// Convert WSG to ECEF
 	double A_EARTH = 6378137.0;
 	double flattening = 1.0 / 298.257223563;
