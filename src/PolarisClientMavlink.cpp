@@ -1,10 +1,6 @@
 #include "PolarisClientMavlink.hpp"
-#include <iomanip>
-#include <iostream>
-#include <future>
-#include <regex>
-#include <algorithm>
 #include <mavsdk/log_callback.h>
+#include <iostream>
 
 PolarisClientMavlink::PolarisClientMavlink(const PolarisClientMavlink::Settings& settings)
 	: _settings(settings)
@@ -18,32 +14,76 @@ PolarisClientMavlink::PolarisClientMavlink(const PolarisClientMavlink::Settings&
 
 void PolarisClientMavlink::stop()
 {
-	_polaris_client->Disconnect();
+	if (_polaris_client) _polaris_client->Disconnect();
+
 	_should_exit = true;
 }
 
+void PolarisClientMavlink::run()
+{
+	std::cout << "Waiting for MAVSDK connection: " << _settings.mavsdk_connection_url << std::endl;
+
+	while (!wait_for_mavsdk_connection(3)) {
+		if (_should_exit) {
+			return;
+		}
+	}
+
+	std::srand(std::time(0));
+	std::string session_id = std::to_string(std::rand());
+	std::cout << "Session ID: " << session_id << std::endl;
+
+	_polaris_client = std::make_shared<point_one::polaris::PolarisClient>(_settings.polaris_api_key, session_id);
+	_polaris_client->SetRTCMCallback(std::bind(&PolarisClientMavlink::RTCMCallback, this, std::placeholders::_1, std::placeholders::_2));
+	_polaris_client->RunAsync();
+
+	// MAVLink GPS message callback
+	auto gps_callback = [this](const mavlink_message_t& message) {
+		handle_gps_raw_int(message);
+	};
+
+	_mavlink_passthrough->subscribe_message(
+		MAVLINK_MSG_ID_GPS_RAW_INT,
+		gps_callback
+	);
+
+	// Loop here to send the position to the server once it's received.
+	while (!_should_exit) {
+
+		// Only send the position data once
+		if (_ecef_position.updated && !_gps_position_set) {
+			_ecef_position.lock.lock();
+			_ecef_position.updated = false;
+			double x = _ecef_position.x;
+			double y = _ecef_position.y;
+			double z = _ecef_position.z;
+			_ecef_position.lock.unlock();
+			std::cout << "Sending ECEF Position to Polaris server" << std::endl;
+			_polaris_client->SendECEFPosition(x, y, z);
+			_gps_position_set = true;
+		}
+
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+}
 bool PolarisClientMavlink::wait_for_mavsdk_connection(double timeout_s)
 {
-	std::cout << "Connecting to " << _settings.mavsdk_connection_url << std::endl;
-	_mavsdk = std::make_shared<mavsdk::Mavsdk>(mavsdk::Mavsdk::Configuration(1, MAV_COMP_ID_ONBOARD_COMPUTER,
-			true)); // Emit heartbeats (Client)
+	auto config = mavsdk::Mavsdk::Configuration(1, MAV_COMP_ID_ONBOARD_COMPUTER, true); // Emit heartbeats (Client)
+	_mavsdk = std::make_shared<mavsdk::Mavsdk>(config);
+
 	auto result = _mavsdk->add_any_connection(_settings.mavsdk_connection_url);
 
 	if (result != mavsdk::ConnectionResult::Success) {
-		std::cout << "Connection failed: " << result << std::endl;
 		return false;
 	}
 
 	auto system = _mavsdk->first_autopilot(timeout_s);
 
 	if (!system) {
-		std::cout << "Timed out waiting for system" << std::endl;
 		return false;
 	}
 
 	std::cout << "Connected to autopilot" << std::endl;
-
-	// MAVSDK plugins
 	_mavlink_passthrough = std::make_shared<mavsdk::MavlinkPassthrough>(system.value());
 
 	return true;
@@ -59,12 +99,11 @@ void PolarisClientMavlink::RTCMCallback(const uint8_t* recv, size_t length)
 		msg.len = length;
 		msg.flags = (_sequence_id & 0x1F) << 3;
 		memcpy(msg.data, recv, length);
-		// Send mavlink message
 		send_mavlink_gps_rtcm_data(msg);
 
 	} else {
 
-		uint8_t fragment_id = 0;         // Fragment id indicates the fragment within a set
+		uint8_t fragment_id = 0;
 		int start = 0;
 
 		while (start < length) {
@@ -86,22 +125,6 @@ void PolarisClientMavlink::RTCMCallback(const uint8_t* recv, size_t length)
 	}
 }
 
-void PolarisClientMavlink::send_mavlink_gps_rtcm_data(const mavlink_gps_rtcm_data_t& msg)
-{
-	std::cout << "Sending GPS_RTCM_DATA: " << int(msg.len) << std::endl;
-	_mavlink_passthrough->queue_message([&](MavlinkAddress mavlink_address, uint8_t channel) {
-		mavlink_message_t message;
-
-		mavlink_msg_gps_rtcm_data_encode_chan(
-			mavlink_address.system_id,
-			mavlink_address.component_id,
-			channel,
-			&message,
-			&msg);
-		return message;
-	});
-}
-
 void PolarisClientMavlink::handle_gps_raw_int(const mavlink_message_t& message)
 {
 	if (_gps_position_set) {
@@ -120,7 +143,7 @@ void PolarisClientMavlink::handle_gps_raw_int(const mavlink_message_t& message)
 	// https://github.com/gyjun0230/wgs_conversions
 	double A_EARTH = 6378137.0;
 	double flattening = 1.0 / 298.257223563;
-	double NAV_E2 = (2.0 - flattening) * flattening; // also e^2
+	double NAV_E2 = (2.0 - flattening) * flattening;
 	double deg2rad = M_PI / 180.0;
 
 	double lat = double(msg.lat) / 1e7;
@@ -144,48 +167,18 @@ void PolarisClientMavlink::handle_gps_raw_int(const mavlink_message_t& message)
 	_ecef_position.updated = true;
 }
 
-void PolarisClientMavlink::run()
+void PolarisClientMavlink::send_mavlink_gps_rtcm_data(const mavlink_gps_rtcm_data_t& msg)
 {
-	bool connected = false;
+	std::cout << "Sending GPS_RTCM_DATA: " << int(msg.len) << std::endl;
+	_mavlink_passthrough->queue_message([&](MavlinkAddress mavlink_address, uint8_t channel) {
+		mavlink_message_t message;
 
-	while (!connected) {
-		connected = wait_for_mavsdk_connection(3);
-
-		if (_should_exit) {
-			return;
-		}
-	}
-
-	std::srand(std::time(0));
-	std::string session_id = std::to_string(std::rand());
-	std::cout << "Session ID: " << session_id << std::endl;
-	// Create polaris client
-	_polaris_client = std::make_shared<point_one::polaris::PolarisClient>(_settings.polaris_api_key, session_id);
-	_polaris_client->SetRTCMCallback(std::bind(&PolarisClientMavlink::RTCMCallback, this, std::placeholders::_1, std::placeholders::_2));
-	_polaris_client->RunAsync();
-
-	// Set up callbacks for GPS message so we can set position: SendECEFPosition
-	auto gps_callback = [this](const mavlink_message_t& message) { handle_gps_raw_int(message); };
-	_mavlink_passthrough->subscribe_message(
-		MAVLINK_MSG_ID_GPS_RAW_INT,
-		gps_callback
-	);
-
-	while (!_should_exit) {
-		if (_ecef_position.updated && !_gps_position_set) {
-			_ecef_position.lock.lock();
-			_ecef_position.updated = false;
-			double x = _ecef_position.x;
-			double y = _ecef_position.y;
-			double z = _ecef_position.z;
-			_ecef_position.lock.unlock();
-			std::cout << "Sending ECEF Position to Polaris server" << std::endl;
-			_polaris_client->SendECEFPosition(x, y, z);
-			_gps_position_set = true;
-		}
-
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-	}
+		mavlink_msg_gps_rtcm_data_encode_chan(
+			mavlink_address.system_id,
+			mavlink_address.component_id,
+			channel,
+			&message,
+			&msg);
+		return message;
+	});
 }
-
-
