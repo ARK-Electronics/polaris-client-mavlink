@@ -129,7 +129,7 @@ void PolarisClientMavlink::handle_gps_raw_int(const mavlink_message_t& message)
 	double y = (r_n + alt) * clat * sin(lon * deg2rad);
 	double z = (r_n * (1.0 - NAV_E2) + alt) * slat;
 
-	std::cout << "Updating GPS position" << std::endl;
+	std::cout << "Updating GPS position:\t" << x << '\t' << y << '\t' << z << std::endl;
 
 	std::lock_guard<std::mutex> lock(_ecef_position.lock);
 	_ecef_position.x = x;
