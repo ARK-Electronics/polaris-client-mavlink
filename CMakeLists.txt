@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(polaris-rtk-client VERSION 0.9 LANGUAGES CXX)
+project(polaris-client-mavlink VERSION 0.9 LANGUAGES CXX)
 
 # Fetch polaris repo
 include(FetchContent)
@@ -23,16 +23,16 @@ find_package(MAVSDK REQUIRED)
 include_directories(third_party/tomlplusplus/)
 
 # Create executable
-add_executable(polaris-rtk-client
+add_executable(polaris-client-mavlink
     src/main.cpp
-    src/PolarisRTKClient.cpp
+    src/PolarisClientMavlink.cpp
 )
 
-target_link_libraries(polaris-rtk-client
+target_link_libraries(polaris-client-mavlink
     pthread
     polaris_cpp_client
     MAVSDK::mavsdk
 )
 
 # Binary installation
-install(TARGETS polaris-rtk-client RUNTIME DESTINATION bin)
+install(TARGETS polaris-client-mavlink RUNTIME DESTINATION bin)

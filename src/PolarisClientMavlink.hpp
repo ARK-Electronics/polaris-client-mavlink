@@ -7,7 +7,7 @@
 
 #include <point_one/polaris/polaris_client.h>
 
-class PolarisRTKClient
+class PolarisClientMavlink
 {
 public:
 	struct Settings {
@@ -15,7 +15,7 @@ public:
 		std::string polaris_api_key;
 	};
 
-	PolarisRTKClient(const Settings& settings);
+	PolarisClientMavlink(const Settings& settings);
 
 	void RTCMCallback(const uint8_t* recv, size_t length);
 

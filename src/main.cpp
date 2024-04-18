@@ -1,4 +1,4 @@
-#include "PolarisRTKClient.hpp"
+#include "PolarisClientMavlink.hpp"
 #include <filesystem>
 #include <signal.h>
 #include <iostream>
@@ -22,7 +22,7 @@ static std::string get_user_name()
 }
 
 std::atomic<bool> _should_exit = false;
-std::shared_ptr<PolarisRTKClient> _polaris_rtk_client;
+std::shared_ptr<PolarisClientMavlink> _polaris_client_mavlink;
 
 int main(int argc, char* argv[])
 {
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 	bool config_exists = std::filesystem::exists(default_config_path);
 
 	try {
-		std::string config_path = config_exists ? default_config_path : "/home/" + get_user_name() + "/polaris-rtk-client/config.toml";
+		std::string config_path = config_exists ? default_config_path : "/home/" + get_user_name() + "/polaris-client-mavlink/config.toml";
 		config = toml::parse_file(config_path);
 
 	} catch (const toml::parse_error& err) {
@@ -49,21 +49,21 @@ int main(int argc, char* argv[])
 	}
 
 	// Setup the LogLoader
-	PolarisRTKClient::Settings settings = {
+	PolarisClientMavlink::Settings settings = {
 		.mavsdk_connection_url = config["connection_url"].value_or("0.0.0"),
 		.polaris_api_key = config["polaris_api_key"].value_or("<your_key_goes_here>")
 	};
 
-	_polaris_rtk_client = std::make_shared<PolarisRTKClient>(settings);
+	_polaris_client_mavlink = std::make_shared<PolarisClientMavlink>(settings);
 
 	bool connected = false;
 
 	while (!_should_exit && !connected) {
-		connected = _polaris_rtk_client->wait_for_mavsdk_connection(3);
+		connected = _polaris_client_mavlink->wait_for_mavsdk_connection(3);
 	}
 
 	if (!_should_exit && connected) {
-		_polaris_rtk_client->run();
+		_polaris_client_mavlink->run();
 	}
 
 	std::cout << "exiting" << std::endl;
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
 static void signal_handler(int signum)
 {
-	if (_polaris_rtk_client.get()) _polaris_rtk_client->stop();
+	if (_polaris_client_mavlink.get()) _polaris_client_mavlink->stop();
 
 	_should_exit = true;
 }

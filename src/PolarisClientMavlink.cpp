@@ -1,11 +1,11 @@
-#include "PolarisRTKClient.hpp"
+#include "PolarisClientMavlink.hpp"
 #include <iomanip>
 #include <iostream>
 #include <future>
 #include <regex>
 #include <algorithm>
 
-PolarisRTKClient::PolarisRTKClient(const PolarisRTKClient::Settings& settings)
+PolarisClientMavlink::PolarisClientMavlink(const PolarisClientMavlink::Settings& settings)
 	: _settings(settings)
 {
 	// Disable mavsdk noise
@@ -15,13 +15,13 @@ PolarisRTKClient::PolarisRTKClient(const PolarisRTKClient::Settings& settings)
 	// });
 }
 
-void PolarisRTKClient::stop()
+void PolarisClientMavlink::stop()
 {
 	_polaris_client->Disconnect();
 	_should_exit = true;
 }
 
-bool PolarisRTKClient::wait_for_mavsdk_connection(double timeout_ms)
+bool PolarisClientMavlink::wait_for_mavsdk_connection(double timeout_ms)
 {
 	std::cout << "Connecting to " << _settings.mavsdk_connection_url << std::endl;
 	_mavsdk = std::make_shared<mavsdk::Mavsdk>(mavsdk::Mavsdk::Configuration(1, MAV_COMP_ID_ONBOARD_COMPUTER,
@@ -48,7 +48,7 @@ bool PolarisRTKClient::wait_for_mavsdk_connection(double timeout_ms)
 	return true;
 }
 
-void PolarisRTKClient::RTCMCallback(const uint8_t* recv, size_t length)
+void PolarisClientMavlink::RTCMCallback(const uint8_t* recv, size_t length)
 {
 	std::cout << "Received data: size: " << length << std::endl;
 
@@ -85,7 +85,7 @@ void PolarisRTKClient::RTCMCallback(const uint8_t* recv, size_t length)
 	}
 }
 
-void PolarisRTKClient::send_mavlink_gps_rtcm_data(const mavlink_gps_rtcm_data_t& msg)
+void PolarisClientMavlink::send_mavlink_gps_rtcm_data(const mavlink_gps_rtcm_data_t& msg)
 {
 	std::cout << "send_mavlink_gps_rtcm_data: " << int(msg.len) << std::endl;
 	_mavlink_passthrough->queue_message([&](MavlinkAddress mavlink_address, uint8_t channel) {
@@ -101,7 +101,7 @@ void PolarisRTKClient::send_mavlink_gps_rtcm_data(const mavlink_gps_rtcm_data_t&
 	});
 }
 
-void PolarisRTKClient::handle_gps_raw_int(const mavlink_message_t& message)
+void PolarisClientMavlink::handle_gps_raw_int(const mavlink_message_t& message)
 {
 	if (_gps_position_set) {
 		// TODO: unsubscribe?
@@ -137,14 +137,14 @@ void PolarisRTKClient::handle_gps_raw_int(const mavlink_message_t& message)
 	_ecef_position.updated = true;
 }
 
-void PolarisRTKClient::run()
+void PolarisClientMavlink::run()
 {
 	std::srand(std::time(0));
 	std::string session_id = std::to_string(std::rand());
 	std::cout << "Session ID: " << session_id << std::endl;
 	// Create polaris client
 	_polaris_client = std::make_shared<point_one::polaris::PolarisClient>(_settings.polaris_api_key, session_id);
-	_polaris_client->SetRTCMCallback(std::bind(&PolarisRTKClient::RTCMCallback, this, std::placeholders::_1, std::placeholders::_2));
+	_polaris_client->SetRTCMCallback(std::bind(&PolarisClientMavlink::RTCMCallback, this, std::placeholders::_1, std::placeholders::_2));
 	_polaris_client->RunAsync();
 
 	// Set up callbacks for GPS message so we can set position: SendECEFPosition
