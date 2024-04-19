@@ -33,7 +33,7 @@ private:
 		double z;
 		bool updated;
 		std::mutex lock;
-	} _ecef_position;
+	} _ecef_position = {};
 
 	// MAVSDK
 	std::shared_ptr<mavsdk::Mavsdk> _mavsdk;
