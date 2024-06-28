@@ -50,6 +50,7 @@ void PolarisClientMavlink::run()
 	// Loop here to send the position to the server once it's received.
 	while (!_should_exit) {
 
+		// TODO: only send position if client is successfully connected
 		// Only send the position data once
 		if (_ecef_position.updated && !_gps_position_set) {
 			_ecef_position.lock.lock();
@@ -104,10 +105,10 @@ void PolarisClientMavlink::RTCMCallback(const uint8_t* recv, size_t length)
 	} else {
 
 		uint8_t fragment_id = 0;
-		int start = 0;
+		size_t start = 0;
 
 		while (start < length) {
-			int current_length = std::min(int(length) - start, MAVLINK_MSG_GPS_RTCM_DATA_FIELD_DATA_LEN);
+			size_t current_length = std::min(length - start, size_t(MAVLINK_MSG_GPS_RTCM_DATA_FIELD_DATA_LEN));
 			msg.flags = 1; // LSB set indicates message is fragmented
 			msg.flags |= (fragment_id++ & 0x3) << 1; // Next 2 bits are fragment id
 			msg.flags |= (_sequence_id & 0x1F) << 3; // Next 5 bits are sequence id

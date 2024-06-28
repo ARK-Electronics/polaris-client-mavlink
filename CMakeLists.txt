@@ -5,13 +5,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(polaris-client-mavlink VERSION 0.9 LANGUAGES CXX)
 
-# Fetch polaris repo
+add_compile_options(-Wall -Wunused)
+
+# Download polaris repo (or make it a submodule)
 include(FetchContent)
 FetchContent_Declare(
     polaris
     GIT_REPOSITORY https://github.com/PointOneNav/polaris.git
-    GIT_TAG v1.3.3
-)
+    GIT_TAG v1.3.3)
 set(POLARIS_BUILD_EXAMPLES OFF CACHE INTERNAL "")
 FetchContent_MakeAvailable(polaris)
 
@@ -19,20 +20,23 @@ FetchContent_MakeAvailable(polaris)
 list(APPEND CMAKE_PREFIX_PATH "/usr/local/MAVSDK/install")
 find_package(MAVSDK REQUIRED)
 
-# Add header only libraries
 include_directories(third_party/tomlplusplus/)
 
-# Create executable
-add_executable(polaris-client-mavlink
+add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/PolarisClientMavlink.cpp
-)
+    src/PolarisClientMavlink.cpp)
 
-target_link_libraries(polaris-client-mavlink
+target_link_libraries(${PROJECT_NAME}
     pthread
     polaris_cpp_client
-    MAVSDK::mavsdk
-)
+    MAVSDK::mavsdk)
 
-# Binary installation
-install(TARGETS polaris-client-mavlink RUNTIME DESTINATION bin)
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+
+install(DIRECTORY DESTINATION $ENV{HOME}/.local/share/${PROJECT_NAME}
+    DIRECTORY_PERMISSIONS
+    OWNER_WRITE OWNER_READ OWNER_EXECUTE
+    GROUP_WRITE GROUP_READ GROUP_EXECUTE
+    WORLD_WRITE WORLD_READ WORLD_EXECUTE)
+
+install(FILES config.toml DESTINATION $ENV{HOME}/.local/share/${PROJECT_NAME})
