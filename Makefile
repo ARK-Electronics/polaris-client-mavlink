@@ -1,19 +1,12 @@
-INSTALL_DIR=${HOME}/polaris-client-mavlink
+PROJECT_NAME="polaris-client-mavlink"
 
 all:
 	@astyle --quiet --options=astylerc src/*.cpp,*.hpp
 	@cmake -Bbuild -H.; cmake --build build -j$(nproc)
-	@size build/polaris-client-mavlink
+	@size build/${PROJECT_NAME}
 
-install:
-	@cmake -Bbuild -H.
-	cmake --build build -j$(nproc)
+install: clean all
 	@sudo cmake --install build
-	@if [ -f install.config.toml ]; then \
-		mkdir -p $(INSTALL_DIR) && cp install.config.toml $(INSTALL_DIR)/config.toml; \
-	else \
-		mkdir -p $(INSTALL_DIR) && cp config.toml $(INSTALL_DIR)/config.toml; \
-	fi
 
 clean:
 	@rm -rf build

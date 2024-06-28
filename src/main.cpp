@@ -3,27 +3,14 @@
 #include <signal.h>
 #include <iostream>
 #include <toml.hpp>
-#include <pwd.h>
 #include <unistd.h>
 #include <sys/types.h>
 
 static void signal_handler(int signum);
 
-static std::string get_user_name()
-{
-	uid_t uid = geteuid();
-	struct passwd* pw = getpwuid(uid);
-
-	if (pw) {
-		return std::string(pw->pw_name);
-	}
-
-	return {};
-}
-
 std::shared_ptr<PolarisClientMavlink> _polaris_client_mavlink;
 
-int main(int argc, char* argv[])
+int main()
 {
 	signal(SIGINT, signal_handler);
 	signal(SIGTERM, signal_handler);
@@ -31,12 +18,8 @@ int main(int argc, char* argv[])
 
 	toml::table config;
 
-	std::string default_config_path = "config.toml";
-	bool config_exists = std::filesystem::exists(default_config_path);
-
 	try {
-		std::string config_path = config_exists ? default_config_path : "/home/" + get_user_name() + "/polaris-client-mavlink/config.toml";
-		config = toml::parse_file(config_path);
+		config = toml::parse_file(std::string(getenv("HOME")) + "/.local/share/polaris-client-mavlink/config.toml");
 
 	} catch (const toml::parse_error& err) {
 		std::cerr << "Parsing failed:\n" << err << "\n";
