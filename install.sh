@@ -14,13 +14,16 @@ sudo apt-get install -y libssl-dev libgflags-dev libgoogle-glog-dev libboost-all
 
 make
 
+# cleanup old service name (we call it just "polaris")
+sudo rm -rf $XDG_DATA_HOME/polaris-client-mavlink &>/dev/null
+
 # Setup project directory
 sudo cp $THIS_DIR/build/polaris-client-mavlink /usr/local/bin
-mkdir -p $XDG_DATA_HOME/polaris-client-mavlink
-cp $THIS_DIR/config.toml $XDG_DATA_HOME/polaris-client-mavlink/
+mkdir -p $XDG_DATA_HOME/polaris
+cp $THIS_DIR/config.toml $XDG_DATA_HOME/polaris/
 
 # Modify config file if ENV variables are set
-CONFIG_FILE="$XDG_DATA_HOME/polaris-client-mavlink/config.toml"
+CONFIG_FILE="$XDG_DATA_HOME/polaris/config.toml"
 
 if [ -n "$POLARIS_API_KEY" ]; then
 	echo "Setting polaris_api_key to: $POLARIS_API_KEY"

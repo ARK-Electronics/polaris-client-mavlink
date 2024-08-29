@@ -19,7 +19,7 @@ int main()
 	toml::table config;
 
 	try {
-		config = toml::parse_file(std::string(getenv("HOME")) + "/.local/share/polaris-client-mavlink/config.toml");
+		config = toml::parse_file(std::string(getenv("HOME")) + "/.local/share/polaris/config.toml");
 
 	} catch (const toml::parse_error& err) {
 		std::cerr << "Parsing failed:\n" << err << "\n";
