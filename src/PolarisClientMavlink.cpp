@@ -69,7 +69,7 @@ void PolarisClientMavlink::run()
 }
 bool PolarisClientMavlink::wait_for_mavsdk_connection(double timeout_s)
 {
-	auto config = mavsdk::Mavsdk::Configuration(1, MAV_COMP_ID_ONBOARD_COMPUTER, true); // Emit heartbeats (Client)
+	auto config = mavsdk::Mavsdk::Configuration(1, MAV_COMP_ID_ONBOARD_COMPUTER2, true); // Emit heartbeats (Client)
 	_mavsdk = std::make_shared<mavsdk::Mavsdk>(config);
 
 	auto result = _mavsdk->add_any_connection(_settings.mavsdk_connection_url);
