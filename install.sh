@@ -18,7 +18,7 @@ make
 sudo rm -rf $XDG_DATA_HOME/polaris-client-mavlink &>/dev/null
 
 # Setup project directory
-sudo cp $THIS_DIR/build/polaris-client-mavlink /usr/local/bin
+sudo cp $THIS_DIR/build/polaris-client-mavlink ~/.local/bin
 mkdir -p $XDG_DATA_HOME/polaris
 cp $THIS_DIR/config.toml $XDG_DATA_HOME/polaris/
 
