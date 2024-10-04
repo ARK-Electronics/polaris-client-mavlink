@@ -41,7 +41,7 @@ int main()
 
 	std::cout << "exiting" << std::endl;
 
-	return -1;
+	return 0;
 }
 
 static void signal_handler(int signum)
