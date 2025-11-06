@@ -13,7 +13,7 @@ make
 popd
 
 # Setup project directory
-cp $THIS_DIR/build/polaris-client-mavlink ~/.local/bin
+cp $THIS_DIR/build/polaris-client-mavlink "${HOME}/.local/bin"
 mkdir -p $XDG_DATA_HOME/polaris
 cp $THIS_DIR/config.toml $XDG_DATA_HOME/polaris/
 
