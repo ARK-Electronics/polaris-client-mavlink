@@ -1,6 +1,8 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
+#include <optional>
 
 #include <mavsdk/mavsdk.h>
 #include <mavsdk/plugins/mavlink_passthrough/mavlink_passthrough.h>
@@ -22,6 +24,10 @@ public:
 	void stop();
 
 private:
+	// GPS_RAW_INT fix_type: 0-1 no fix, 2 = 2D, 3 = 3D, ...
+	static constexpr uint8_t kMinFixType = 2;
+	static constexpr std::chrono::seconds kStableFixDuration{3};
+
 	bool wait_for_mavsdk_connection(double timeout_s);
 
 	void send_mavlink_gps_rtcm_data(const mavlink_gps_rtcm_data_t& msg);
@@ -34,6 +40,9 @@ private:
 		bool updated;
 		std::mutex lock;
 	} _ecef_position = {};
+
+	// Tracks continuous >=2D fix so we only send after a stable window.
+	std::optional<std::chrono::steady_clock::time_point> _fix_ok_since;
 
 	// MAVSDK
 	std::shared_ptr<mavsdk::Mavsdk> _mavsdk;
